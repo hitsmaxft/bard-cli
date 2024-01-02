@@ -1,24 +1,26 @@
 { pkgs ? (
     let
-      sources = import ./nix/sources.nix;
+      inherit (builtins) fetchTree fromJSON readFile;
+      inherit ((fromJSON (readFile ./flake.lock)).nodes) nixpkgs gomod2nix;
     in
-    import sources.nixpkgs {
+    import (fetchTree nixpkgs.locked) {
       overlays = [
-        (import "${sources.gomod2nix}/overlay.nix")
+        (import "${fetchTree gomod2nix.locked}/overlay.nix")
       ];
     }
   )
+, mkGoEnv ? pkgs.mkGoEnv
+, gomod2nix ? pkgs.gomod2nix
 }:
 
 let
-  goEnv = pkgs.mkGoEnv { pwd = ./.; };
+  goEnv = mkGoEnv { pwd = ./.; };
 in
 pkgs.mkShell {
   packages = [
+    pkgs.go
     goEnv
-    pkgs.gomod2nix
-    pkgs.niv
+    gomod2nix
   ];
 }
 
-## run in current shell :  `nix-shell -E '{ pkgs ?  ( let sources = import ./nix/sources.nix; in import sources.nixpkgs { overlays = [ (import "${sources.gomod2nix}/overlay.nix") ]; }) }: pkgs.mkShell { nativeBuildInputs =  [ (pkgs.callPackage ./default.nix {} )  ]; } '`

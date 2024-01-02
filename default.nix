@@ -1,21 +1,22 @@
 { pkgs ? (
-    let
-      sources = import ./nix/sources.nix;
-    in
-    import sources.nixpkgs {
-      overlays = [
-        (import "${sources.gomod2nix}/overlay.nix")
+  let
+    inherit (builtins) fetchTree fromJSON readFile;
+    inherit ((fromJSON (readFile ./flake.lock)).nodes) nixpkgs gomod2nix;
+  in
+  import (fetchTree nixpkgs.locked) {
+    overlays = [
+      (import "${fetchTree gomod2nix.locked}/overlay.nix")
       ];
-    }
-  ),
-  pname? "bard-cli",
-  pversion ? "0.1"
-}:
+      }
+      )
+      , buildGoApplication ? pkgs.buildGoApplication
+      }:
 
-pkgs.buildGoApplication {
-  pname = pname;
-  version = pversion;
-  pwd = ./.;
-  src = ./.;
-  modules = ./gomod2nix.toml;
-}
+      buildGoApplication {
+        pname = "bard-cli";
+        version = "0.1";
+        pwd = ./.;
+        src = ./.;
+        modules = ./gomod2nix.toml;
+      }
+
